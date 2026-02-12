@@ -51,7 +51,10 @@ Route::middleware('auth')->group(function () {
 
         // Attendance
         Route::get('/attendance', [AttendanceController::class, 'index'])->name('kiosk.attendance.index');
-        Route::delete('/attendance/delete/{attendance:id}', [AttendanceController::class, 'destroy'])->name('kiosk.attendance.destroy');
+        Route::delete('/attendance/{attendance:id}', [AttendanceController::class, 'destroy'])->name('kiosk.attendance.destroy');
+        Route::get('/attendance/today', [AttendanceController::class, 'attendanceToday'])->name('kiosk.attendance.today');
+
+        // Export Attendance
         Route::get('/export/attendance', [AttendanceController::class, 'exportAttendance'])->name('exportAttendance');
         Route::get('/export/attendance-salary', [AttendanceController::class, 'exportAttendanceSalary'])->name('exportAttendanceSalary');
 
@@ -61,11 +64,11 @@ Route::middleware('auth')->group(function () {
 
         // Check In Routes
         Route::get('/check-in', [CheckInController::class, 'index'])->name('kiosk.checkIn');
-        Route::post('attendance/checkin', [AttendanceController::class, 'checkIn'])->name('kiosk.attendance.check-in');
+        Route::post('/attendance/check-in', [AttendanceController::class, 'checkIn'])->name('kiosk.attendance.check-in');
 
         // Check Out Routes
         Route::get('/check-out', [CheckOutController::class, 'index'])->name('kiosk.checkOut');
-        Route::put('/attendance/checkout', [AttendanceController::class, 'bulkCheckOut'])->name('kiosk.attendance.check-out');
+        Route::put('/attendance/check-out', [AttendanceController::class, 'checkOut'])->name('kiosk.attendance.check-out');
 
         // Salary Route
         Route::get('/wage', [WageController::class, 'index'])->name('kiosk.wage.index');

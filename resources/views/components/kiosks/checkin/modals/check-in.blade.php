@@ -128,6 +128,29 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Load Today's Check-ins
+    function loadTodayCheckins() {
+        fetch('/kiosk/attendance/today')
+            .then(res => {
+                if (!res.ok) throw new Error('Failed load');
+                return res.json();
+            })
+            .then(data => {
+                const list = document.getElementById('checkin-list');
+                list.innerHTML = '';
+
+                if (data.length === 0) {
+                    list.innerHTML = `<li class="text-sm text-gray-500">Belum ada check-in hari ini</li>`;
+                    return;
+                }
+
+                data.forEach(item => {
+                    list.appendChild(renderItem(item));
+                });
+            })
+            .catch(err => console.error(err));
+    }
+
     // Load Today Check-ins
     loadTodayCheckins();
 
@@ -156,20 +179,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return li;
     }
 
-    // Load Today's Check-ins
-    function loadTodayCheckins() {
-        fetch('/kiosk/attendance/today')
-            .then(res => res.json())
-            .then(data => {
-                const list = document.getElementById('checkin-list');
-                list.innerHTML = '';
-
-                data.forEach(item => {
-                    list.appendChild(renderItem(item));
-                });
-            });
-    }
-
     // Submit Check-in
     function submitCheckin(id_number) {
         if (!id_number) return;
@@ -178,15 +187,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content
                 },
                 body: JSON.stringify({
                     id_number
                 })
             })
-            .then(res => {
-                if (!res.ok) throw new Error('Gagal check-in');
-                return res.json();
+            .then(async res => {
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.message);
+                return data;
             })
             .then(() => {
                 playSound('user-found-sound');

@@ -28,6 +28,23 @@ class AttendanceController extends Controller
         return view('kiosk.index-attendance', compact(['attendances', 'employees', 'divisions', 'title']));
     }
 
+    public function attendanceToday()
+    {
+        $attendances = Attendance::with('employee')
+            ->whereDate('created_at', Carbon::today())
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($attendance) {
+                return [
+                    'id' => $attendance->id,
+                    'name' => $attendance->employee->name ?? '-',
+                    'check_in_time' => $attendance->created_at->format('H:i:s'),
+                ];
+            });
+
+        return response()->json($attendances);
+    }
+
     public function destroy(Attendance $attendance)
     {
         $attendance->delete();
@@ -79,7 +96,7 @@ class AttendanceController extends Controller
     }
 
 
-    public function bulkCheckOut(Request $request)
+    public function checkOut(Request $request)
     {
         // Validate input
         $request->validate([
@@ -116,7 +133,11 @@ class AttendanceController extends Controller
             'id_number' => 'required|string'
         ]);
 
-        $employee = Employee::where('id_number', $request->id_number)->firstOrFail();
+        $employee = Employee::where('id_number', $request->id_number)->first();
+
+        if (!$employee) {
+            return response()->json(['message' => 'ID tidak ditemukan'], 404);
+        }
 
         // Cegah double check-in hari ini
         $exists = Attendance::where('employee_id', $employee->id)
@@ -129,7 +150,8 @@ class AttendanceController extends Controller
 
         $attendance = Attendance::create([
             'employee_id' => $employee->id,
-            'check_in' => now()
+            'check_in' => now(),
+            'user_id' => Auth::id(),
         ]);
 
         return response()->json([
@@ -137,18 +159,6 @@ class AttendanceController extends Controller
             'name' => $employee->name,
             'id_number' => $employee->id_number
         ]);
-    }
-
-    public function today()
-    {
-        return Attendance::with('employee')
-            ->whereDate('check_in', today())
-            ->get()
-            ->map(fn($a) => [
-                'id' => $a->id,
-                'name' => $a->employee->name,
-                'id_number' => $a->employee->id_number
-            ]);
     }
 
     public function destroyAttendance(Attendance $attendance)

@@ -22,47 +22,8 @@
             </div>
             <!-- Modal body -->
             <!-- Newly arrived employee -->
-            <form method="POST" action="{{ route('kiosk.attendance.check-out') }}" id="checkout-save-form">
-                @csrf
-                @method('PUT')
-                <!-- TEMP LIST -->
-                <ul id="checkout-list" class="divide-y divide-default max-h-40 overflow-y-auto"></ul>
-                <!-- HIDDEN INPUT CONTAINER -->
-                <div id="hidden-inputs"></div>
-            </form>
-
-            <template id="checkout-item-template">
-                <li class="pb-3 sm:pb-4">
-                    <div class="flex items-center space-x-4 rtl:space-x-reverse mt-2">
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center space-x-2">
-
-                                <div class="relative flex items-center w-full">
-                                    <input type='text' value="Nama Lengkap"
-                                        class="rounded-base block w-full pr-4 pl-12 py-2 bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand placeholder:text-body"
-                                        readonly />
-                                    <div class="absolute left-4">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="#bbb"
-                                            viewBox="0 0 512 512">
-                                            <path
-                                                d="M437.02 74.981C388.667 26.629 324.38 0 256 0S123.333 26.629 74.98 74.981C26.629 123.333 0 187.62 0 256s26.629 132.667 74.98 181.019C123.333 485.371 187.62 512 256 512s132.667-26.629 181.02-74.981C485.371 388.667 512 324.38 512 256s-26.629-132.667-74.98-181.019zM256 482c-66.869 0-127.037-29.202-168.452-75.511C113.223 338.422 178.948 290 256 290c-49.706 0-90-40.294-90-90s40.294-90 90-90 90 40.294 90 90-40.294 90-90 90c77.052 0 142.777 48.422 168.452 116.489C383.037 452.798 322.869 482 256 482z"
-                                                data-original="#000000"></path>
-                                        </svg>
-                                    </div>
-                                </div>
-                                <button type="button"
-                                    class="remove-btn flex items-center justify-center text-gray-700 border border-gray-400 hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 font-medium rounded text-sm px-4 py-2 dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-700 focus:outline-none">
-                                    <svg class="" xmlns="http://www.w3.org/2000/svg" width="20px" height="20px"
-                                        viewBox="0 0 640 640" fill="#444">
-                                        <path
-                                            d="M232.7 69.9L224 96L128 96C110.3 96 96 110.3 96 128C96 145.7 110.3 160 128 160L512 160C529.7 160 544 145.7 544 128C544 110.3 529.7 96 512 96L416 96L407.3 69.9C402.9 56.8 390.7 48 376.9 48L263.1 48C249.3 48 237.1 56.8 232.7 69.9zM512 208L128 208L149.1 531.1C150.7 556.4 171.7 576 197 576L443 576C468.3 576 489.3 556.4 490.9 531.1L512 208z" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </li>
-            </template>
+            <!-- TEMP LIST -->
+            <ul id="checkout-list" class="my-4 max-h-60 overflow-y-auto"></ul>
             <!-- End Newly arrived employee -->
 
 
@@ -124,8 +85,6 @@
                     </div>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <button id="save" type="button"
-                        class="text-white bg-brand box-border border border-transparent hover:bg-brand-strong focus:ring-4 focus:ring-brand-medium shadow-xs font-medium leading-5 rounded-base text-sm px-4 py-2 focus:outline-none">Save</button>
                     <button data-modal-hide="check-out-modal" type="button"
                         class="text-body bg-neutral-secondary-medium box-border border border-default-medium hover:bg-neutral-tertiary-medium hover:text-heading focus:ring-4 focus:ring-neutral-tertiary shadow-xs font-medium leading-5 rounded-base text-sm px-4 py-2 focus:outline-none">Tutup</button>
                 </div>
@@ -166,7 +125,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-
     function playSound(id) {
         const sound = document.getElementById(id);
         if (sound) {
@@ -175,60 +133,86 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    document.getElementById('addCheckoutManual').addEventListener('click', function() {
-        const id_number = document.getElementById('idNumberOut').value.trim();
-        if (!id_number) return;
-
-        fetch(`/kiosk/employee/by-id-number/${id_number}`)
-            .then(res => {
-                if (!res.ok) throw new Error('User tidak ditemukan');
-                return res.json();
-            })
+    // Load Today's Check-ins
+    function loadTodayCheckouts() {
+        fetch('/kiosk/attendance/today')
+            .then(res => res.json())
             .then(data => {
-                addCheckoutItem(data.id_number, data.name);
-                playSound('user-found-sound');
-                document.getElementById('idNumberOut').value = '';
-            })
-            .catch(err => alert(err.message));
-    });
+                const list = document.getElementById('checkin-list');
+                list.innerHTML = '';
 
-    document.getElementById('save').addEventListener('click', function() {
-        if (!document.querySelector('input[name="id_numbers[]"]')) {
-            alert('Belum ada karyawan');
-            return;
-        }
-        this.disabled = true;
-        document.getElementById('checkout-save-form').submit();
-    });
-
-    function addCheckoutItem(id_number, name) {
-        // Cegah duplikat
-        if ([...document.querySelectorAll('input[name="id_numbers[]"]')]
-            .some(i => i.value === id_number)) return;
-
-        const template = document.getElementById('checkout-item-template');
-        const clone = template.content.cloneNode(true);
-
-        // UI name
-        clone.querySelector('input').value = name;
-
-        // Hidden input
-        const hidden = document.createElement('input');
-        hidden.type = 'hidden';
-        hidden.name = 'id_numbers[]';
-        hidden.value = id_number;
-
-        document.getElementById('hidden-inputs').appendChild(hidden);
-
-        // Hapus item
-        clone.querySelector('.remove-btn').addEventListener('click', function() {
-            hidden.remove();
-            this.closest('li').remove();
-        });
-
-        document.getElementById('checkout-list').appendChild(clone);
+                data.forEach(item => {
+                    list.appendChild(renderItem(item));
+                });
+            });
     }
 
+    // Load Today Check-ins
+    loadTodayCheckouts();
+
+    // Render Check-in Item
+    function renderItem(item) {
+        const li = document.createElement('li');
+        li.className = 'pb-3';
+
+        li.innerHTML = `
+        <div class="flex items-center justify-between">
+            <input readonly value="${item.name}"
+                class="w-full bg-neutral-secondary-medium rounded-base px-3 py-2 text-sm"/>
+            <button class="remove-btn ml-2">🗑</button>
+        </div>
+    `;
+
+        li.querySelector('.remove-btn').onclick = () => {
+            fetch(`/kiosk/attendance/${item.id}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content
+                }
+            }).then(() => loadTodayCheckouts());
+        };
+
+        return li;
+    }
+
+    // Submit Check-out
+    function submitCheckout(id_number) {
+        if (!id_number) return;
+
+        fetch('/kiosk/attendance/check-out', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content
+                },
+                body: JSON.stringify({
+                    id_number
+                })
+            })
+            .then(async res => {
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.message);
+                return data;
+            })
+            .then(() => {
+                playSound('user-found-sound');
+                loadTodayCheckouts();
+            })
+            .catch(err => alert(err.message));
+    }
+
+    // Klik Enter di input ID Number
+    document.getElementById('idNumberOut').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            playSound('scan-success-sound');
+            submitCheckout(this.value.trim());
+            this.value = '';
+        }
+    });
+
+    // Start and Stop Camera
     function startCameraForCheckout() {
         if (qrScanner) return;
 
@@ -244,6 +228,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             },
             async (decodedText) => {
+                playSound('scan-success-sound');
                 await handleQrResult(decodedText);
             }
         );
@@ -258,29 +243,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // QR Code Result Handler
     async function handleQrResult(value) {
         if (scanCooldown) return;
-
         scanCooldown = true;
-        playSound('scan-success-sound');
 
-        fetch(`/kiosk/employee/by-id-number/${value}`)
-            .then(res => {
-                if (!res.ok) throw new Error('User tidak ditemukan');
-                return res.json();
-            })
-            .then(data => {
-                addCheckoutItem(data.id_number, data.name);
-                playSound('user-found-sound');
-            })
-            .catch(err => {
-                alert(err.message);
-            }).finally(() => {
-                // delay 1.5 detik sebelum bisa scan lagi
-                setTimeout(() => {
-                    scanCooldown = false;
-                }, 1500);
-            });
+        submitCheckout(value);
+
+        setTimeout(() => scanCooldown = false, 1500);
     }
 });
 </script>
